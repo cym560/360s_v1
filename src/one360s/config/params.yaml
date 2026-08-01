@@ -1,0 +1,137 @@
+# one360s v1 — 参数配置
+# 所有参数均可通过 ROS 2 parameter server 或 YAML 加载覆盖。
+#
+# ======== 换飞机只需改这里 ========
+# ── 无人机物理参数 ──
+drone:
+  body_length_m: 0.65     # 前后总长
+  body_width_m:  0.80     # 左右总宽（含机臂）
+  body_height_m: 0.55     # LiDAR以下机身高度（到脚架底）
+  lidar_z_offset: 0.15    # LiDAR 高于机身中心的高度
+  safety_extra_m: 0.25    # 安全余量
+
+  # 动力
+  max_speed_ms: 3.0
+  max_decel_ms2: 3.0
+  min_speed_ms: 0.5
+
+# ===================================
+# 以下参数由 drone 段自动推导，也可手动覆盖
+
+# ── 感知 ──
+range_filter:
+  min_range_m: 0.25
+  max_range_m: 40.0
+  z_bins:
+    L0: [-3.0, -0.4]    # 地面层 (下坡/降落)
+    L1: [-0.4, 0.5]     # 飞行层 (水平主用)
+    L2: [0.5, 2.0]      # 上方空间 (爬升通道)
+    up: [2.0, 6.0]      # 树冠顶部 (爬升前检查)
+
+# crop_box: 由 drone 段自动推导, 无需手动填写
+
+voxel_filter:
+  enable: true
+  leaf_size_m: 0.05
+
+radius_outlier:
+  enable: true
+  radius_m: 0.15
+  min_neighbors: 2
+
+sector:
+  num_sectors: 72
+  sector_deg: 5.0
+  percentile: 20
+  min_points_near: 3     # <5m
+  min_points_mid: 2      # 5-10m
+  min_points_far: 1      # >10m (防漏检)
+
+temporal_filter:
+  enable: true
+  receding_alpha: 0.4
+  clear_frames: 3
+
+obstacle_confidence:
+  decay: 0.9              # 每帧衰减系数
+  threshold: 0.5           # 低于此值视为"消失"
+  conservative_dist_m: 3.0 # 置信度高时的保守距离
+
+inflation:
+  enable: true
+  vehicle_radius_m: 0.45
+  safety_extra_m: 0.25
+  max_inflate_bins: 6
+
+attitude_compensation:
+  enable: true
+  min_angle_deg: 5.0
+
+tag_filter:
+  enable: true
+  min_confidence: 1
+
+# ── 夹点探测 ──
+pinch:
+  vehicle_radius_m: 0.45
+  safety_extra_m: 0.25
+  effective_R: 0.70
+  max_range: 40.0
+  scan_half_deg: 90       # 扫描前方 ±90°
+  step_deg: 5
+  hysteresis_m: 1.0       # 新方向需多 ≥1m 夹点才切换
+  all_blocked_m: 1.5      # 夹点 < 1.5m 才判全堵 (保守)
+  decline_ratio: 0.3      # 3秒内夹点降至 30% 才判收窄 (保守)
+  decline_window_s: 3.0
+  confirm_frames: 3       # 连续 N 帧才确认
+
+# ── 伪压缩 ──
+pseudo_compress:
+  expand_factors: [1.5, 2.0, 2.5, 3.0, 4.0, 5.0]
+  width_full_score: 3.0   # 膨胀 3 倍 = 宽度满分
+
+# ── 速度 ──
+speed:
+  max_decel_ms2: 3.0
+  safety_factor: 0.5      # 刹车距离安全系数 (惯性+风扰余量)
+  max_speed_ms: 3.0
+  min_speed_ms: 0.5
+  cautious_step_m: 2.0    # 夹点 < 7m 时短步长
+  normal_step_m: 5.0
+  roam_alt_m: 10.0        # 定高漫游高度
+
+# ── 爬升 ──
+climb:
+  max_climb_rate_ms: 1.2  # 保守值 (标称 2.0)
+  window_factor: 0.7      # 前飞距离 / 可用距离 < 0.7
+  slope_min_sectors: 5    # 连续 N 扇区递减 = 坡度
+  slope_safe_height_m: 2.0
+
+# ── 飞行任务 ──
+# mode: roam=定高漫游 | traverse=定向穿越 | inspect=巡检穿越
+# 飞控始终处于 GUIDED 模式, 此处只改评分策略
+mission:
+  mode: "roam"                 # roam / traverse / inspect
+  goal_bearing_deg: -1.0       # traverse/inspect 用: 目标方向 0-360°
+  goal_weight: 0.3             # traverse 方向偏置权重
+  inspect_weight: 0.6          # inspect 更强方向约束
+
+# ── 拓扑记忆 ──
+topo:
+  save_path: "/tmp/one360s_topo.json"
+  save_interval_s: 60.0
+  fork_min_pinch_m: 15.0        # 高阈值防误触发
+  fork_min_angle_sep: 30.0      # 出口至少隔30°才算不同方向
+  backtrack_tolerance_m: 5.0
+  dead_end_ttl_s: 30.0          # 短TTL, 30秒过期
+  max_nodes: 20                 # 最多保留20个节点
+
+# ── MAVLink ──
+mavlink:
+  device: "/dev/ttyTHS1"
+  baud: 921600
+  rate_hz: 10
+
+# ── 调试 ──
+debug:
+  publish_filtered_cloud: false

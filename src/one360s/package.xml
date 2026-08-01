@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>one360s</name>
+  <version>0.1.0</version>
+  <description>
+    one360s v1 — 单LiDAR夹点规划低算力自主导航。
+    不建图、不定位、在传感器空间内直接做规划。
+  </description>
+
+  <maintainer email="user@example.com">one360s</maintainer>
+  <license>MIT</license>
+
+  <depend>rclpy</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
